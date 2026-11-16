@@ -228,7 +228,7 @@ function dayView() {
     const rows = pvaFor(day);
     h += `<section class="card"><div class="lbl">Logged</div>${rows.map((r, i) => `<div class="logrow ${i ? "sep" : ""}"><div class="t2">${esc(r.name)}</div><div class="sm">Planned ${esc(r.plan)}</div><div class="sm ${r.miss ? "warn" : "pri"}">Did ${esc(r.actual)}</div></div>`).join("")}
       ${day.feel !== undefined || (day.tags && day.tags.length) ? `<div class="tiny">Feel: ${day.feel !== undefined ? day.feel + "/5" : "not rated"}${day.tags && day.tags.length ? " \u00b7 " + esc(day.tags.join(", ")) : ""}${isOff(day) ? " \u00b7 off day" : ""}</div>` : ""}
-      ${day.note ? `<div class="tiny">Note: ${esc(day.note)}</div>` : ""}</section>`;
+      ${day.note ? `<div class="tiny">Note: ${esc(day.note)}</div>` : ""}${day.mob && Object.keys(day.mob).length ? `<div class="tiny">Mobility: ${Object.keys(day.mob).length} stretches done</div>` : ""}</section>`;
   }
   if (!pushed && status !== "done" && WARM[key]) h += `<section class="card"><div class="lbl">Warm-up</div><div class="t2">${esc(WARM[key])}</div></section>`;
   if (!pushed && status !== "done") {
@@ -257,6 +257,11 @@ function dayView() {
         ${rp.dist !== undefined && rp.time !== undefined ? `<div class="sm" id="pace">${dd > 0 && tt > 0 ? `Average pace: ${fmtPace((tt * 60) / dd)}/mi` : ""}</div>` : ""}</section>`;
     }
   }
+  { const mob = mobilityFor(pushed ? "recovery" : shownKey, sel, st); const done = day.mob || {}; const n = mob.list.filter((x) => done[x.id]).length;
+    h += `<section class="card"><div class="lbl">Mobility & stretching</div><div class="t2">About ${mob.min} min \u00b7 ${n}/${mob.list.length} done</div>
+      <div class="tiny">Static holds after training only; warm-ups stay dynamic. Ease into a mild stretch, never pain, and breathe slowly. Add a second round if you have time.${(pushed || shownKey === "recovery") ? " Great right after the hot tub or sauna while you're warm; hamstring and calf stretches work sitting on the hot tub step." : ""}</div>
+      ${mob.list.map((x) => `<div class="stretch ${done[x.id] ? "on" : ""}"><button class="chk ${done[x.id] ? "on" : ""}" data-action="mob" data-id="${x.id}" aria-label="Mark ${esc(x.name)} done">${done[x.id] ? "\u2713" : ""}</button>
+        <div class="sbody"><div class="t2">${esc(x.name)}</div><div class="sm">${x.hold} s${x.side ? " each side" : ""}</div><ul>${x.cues.map((c) => `<li>${esc(c)}</li>`).join("")}</ul></div></div>`).join("")}</section>`; }
   const recov = recoveryLines(pushed ? "recovery" : shownKey, sauna, pool);
   h += `<section class="card"><div class="lbl">${key === "recovery" || pushed ? "Recovery" : "After the workout"}</div>${lineList(recov)}
     <div class="tiny">Drink 16-24 oz with electrolytes per heat session. Hot tub max 104\u00b0F, 15-20 min per bout. No alcohol. Get out if dizzy.</div>
@@ -372,7 +377,7 @@ function menuView() {
       const rows = pvaFor(pd).map((r) => [r.name, r.plan, r.miss ? { text: r.actual, warn: true } : r.actual]);
       h += `<section class="card"><div class="h3">Planned vs actual</div><label class="field"><span>Session</span><select data-change="hist">${pvaDates.map((d) => `<option value="${d}" ${d === ps ? "selected" : ""}>${short(d)} \u00b7 ${esc(NAMES[st.days[d].session || "long"])}</option>`).join("")}</select></label>
         ${rows.length ? table(["Exercise", "Planned", "Actual"], rows) : ""}
-        <div class="sm">Feel: ${pd.feel !== undefined ? pd.feel + "/5" : "not rated"}${isOff(pd) ? " (off day)" : ""}. ${pd.planned && pd.planned.deload ? "Deload week. " : ""}${esc((pd.outcomes || []).join(" "))}</div></section>`;
+        <div class="sm">Feel: ${pd.feel !== undefined ? pd.feel + "/5" : "not rated"}${isOff(pd) ? " (off day)" : ""}. ${pd.planned && pd.planned.deload ? "Deload week. " : ""}${esc((pd.outcomes || []).join(" "))}${pd.mob && Object.keys(pd.mob).length ? ` Mobility: ${Object.keys(pd.mob).length} stretches.` : ""}</div></section>`;
     }
     if (histDates.length) {
       const rows = histDates.map((d) => {
@@ -381,10 +386,11 @@ function menuView() {
         const k = x.session || sessionFor(d, st);
         const result = isP ? "Pushed" : x.status === "done" ? { text: "Done", ok: true } : x.status === "skipped" ? "Skipped" : d === today ? "In progress" : "Not logged";
         const feel = x.feel !== undefined ? `${x.feel}/5${isOff(x) ? " off day" : ""}${x.tags && x.tags.length ? " \u00b7 " + x.tags.join(", ") : ""}` : "-";
-        return [short(d), isP ? "Rest" : NAMES[k], result, isOff(x) ? { text: feel, warn: true } : feel];
+        const mc = x.mob ? Object.keys(x.mob).length : 0;
+        return [short(d), isP ? "Rest" : NAMES[k], result, isOff(x) ? { text: feel, warn: true } : feel, mc ? `\u2713 ${mc}` : "-"];
       });
       const notes = histDates.filter((d) => (st.days[d] || {}).note).slice(0, 7);
-      h += `<section class="card"><div class="h3">Log</div>${table(["Date", "Session", "Result", "Feel"], rows)}${notes.map((d) => `<div class="sm"><b>${short(d)}</b> ${esc(st.days[d].note)}</div>`).join("")}</section>`;
+      h += `<section class="card"><div class="h3">Log</div>${table(["Date", "Session", "Result", "Feel", "Mobility"], rows)}${notes.map((d) => `<div class="sm"><b>${short(d)}</b> ${esc(st.days[d].note)}</div>`).join("")}</section>`;
     }
   }
 
@@ -456,6 +462,7 @@ $app.addEventListener("click", (ev) => {
     case "light": upDay(sel, (d) => ({ ...d, light: !d.light })); render(); break;
     case "sauna": { const v = P().sauna; upDay(sel, (d) => ({ ...d, sauna: !v })); render(); break; }
     case "pool": { const v = P().pool; upDay(sel, (d) => ({ ...d, pool: !v })); render(); break; }
+    case "mob": { const id = b.dataset.id; upDay(sel, (d) => { const m = { ...(d.mob || {}) }; if (m[id]) delete m[id]; else m[id] = true; return { ...d, mob: m }; }); render(); break; }
     case "push": push(); break;
     case "unpush": unpush(); break;
     case "done": markDone(); break;

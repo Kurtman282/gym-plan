@@ -73,3 +73,10 @@ table{border-collapse:collapse;width:100%;font-size:14px}
 th{font-weight:600;color:var(--ter);text-align:left;padding:6px 6px;border-bottom:1px solid var(--border)}
 td{padding:8px 6px;border-bottom:1px solid var(--subtle);vertical-align:top}
 .r{text-align:right}
+.stretch{display:flex;gap:12px;align-items:flex-start;padding-top:10px;border-top:1px solid var(--subtle)}
+.stretch .sbody{flex:1;min-width:0}
+.stretch ul{margin:4px 0 0;padding-left:18px;color:var(--sub);font-size:15px}
+.stretch ul li{margin:2px 0}
+.stretch.on .t2{color:var(--ter);text-decoration:line-through}
+.chk{flex:0 0 auto;width:44px;height:44px;border-radius:12px;border:2px solid var(--border);background:transparent;font-size:20px;font-weight:700;color:var(--onPrimary)}
+.chk.on{background:var(--ok);border-color:var(--ok)}
